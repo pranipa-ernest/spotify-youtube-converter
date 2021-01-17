@@ -1,0 +1,63 @@
+:root {
+    --background_colour_one: #10232B;
+}
+
+html, body {
+    height: 100%;
+}
+
+body {
+    margin: 0;
+    background-color: var(--background_colour_one);
+}
+
+.bg {
+    background: var(--background_colour_one) url(/static/images/background-img.svg);
+    background-position: center center;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+    background-size: cover;
+    height: 100%;
+    width: 100%;
+  }
+
+#yt-to-sp {
+    background-image: url(/static/images/arrowsbutton1.svg);
+    background-repeat: no-repeat;
+    background-size:contain;
+    background-position:center;
+    padding: 1.5vw;
+}
+
+#sp-to-yt {
+    background-image: url(/static/images/arrowsbutton2.svg);
+    background-repeat: no-repeat;
+    background-size:contain;
+    background-position:center;
+    padding: 1.5vw;
+}
+
+h1 {
+    font-weight: bold;
+    font-size: 3.3vw;
+    color: white;
+    font-family: 'Raleway';
+}
+
+h2 {
+    font-size: 1.8vw;
+    color: white;
+    font-family: 'Raleway';
+}
+
+/* @media (max-width: 543px) {
+    .mydivs-filler { 
+        height: 40%;
+        width: 100%;
+    }
+    .mydivs-show { 
+        height: 10%;
+        width: 40%;
+    }
+}
+ */

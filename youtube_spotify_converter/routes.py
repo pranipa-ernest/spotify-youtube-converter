@@ -4,14 +4,13 @@ from googleapiclient.discovery import build
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth, SpotifyClientCredentials
 from flask import render_template, redirect, session, url_for, request
-from youtube_spotify_converter import app
+from youtube_spotify_converter import app, youtube_spotify
 from dotenv import load_dotenv
 import os
 from youtube_title_parse import get_artist_title
 
-
 load_dotenv()
-CLIENT_SECRETS_FILE = "client_secret.json"
+CLIENT_SECRETS_FILE = "youtube_spotify_converter/client_secret.json"
 SCOPES = ['https://www.googleapis.com/auth/youtube.force-ssl']
 
 
@@ -28,63 +27,22 @@ def login():
         return redirect('loggedIn')
 
 
-def spotify_authorize():
+@app.route('/loggedIn')
+def logged_in():
+    # Authorize YouTube ===
+    credentials = google.oauth2.credentials.Credentials(
+        **session['credentials'])
+    session['credentials'] = credentials_to_dict(credentials)
+    youtube = build('youtube', 'v3', credentials=credentials)
+
+    # Authorize Spotify ===
     sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=os.getenv("SPOTIFY_CLIENT_ID"),
                                                    client_secret=os.getenv("SPOTIFY_CLIENT_SECRET"),
                                                    redirect_uri="http://localhost:8888/callback",
                                                    scope="playlist-read-private playlist-modify-private"))
-    return sp
 
-
-# create a spotify playlist
-def spotify_create_playlist(sp):
-    user_id = sp.me()['id']
-    playlist = sp.user_playlist_create(user_id, name="YouTube Likes", public=False,
-                                       description="Liked videos from YouTube")
-    return playlist["id"]
-
-
-# Search spotify; return track id
-def spotify_search(sp, query):
-    artist, title = get_artist_title(query)
-    result = sp.search(q=title, type="track")
-    if len(result["tracks"]["items"]) == 0:
-        return 0
-    else:
-        return result["tracks"]["items"][0]["id"]
-
-
-@app.route('/loggedIn')
-def logged_in():
-    # Authorize YouTube ===
-    # Load credentials from the session.
-    credentials = google.oauth2.credentials.Credentials(
-        **session['credentials'])
-
-    # Save credentials back to session in case access token was refreshed.
-    session['credentials'] = credentials_to_dict(credentials)
-
-    youtube = build('youtube', 'v3', credentials=credentials)
-
-    # Authorize Spotify ===
-    sp = spotify_authorize()
-
-    # Workflow ===
-    # Obtain list of liked videos (titles)
-    liked_videos = youtube_likes(youtube)
-
-    # create new playlist; return new playlist id
-    playlist = spotify_create_playlist(sp)
-
-    tracks = []
-    for video in liked_videos:
-        song = spotify_search(sp, video)
-        if song == 0:
-            continue
-        else:
-            tracks.append(song)
-
-    sp.playlist_add_items(playlist, tracks)
+    # YouTube -> Spotify Conversion ===
+    youtube_spotify.workflow(youtube, sp)
 
     return render_template('finishedYS.html')
 
@@ -137,17 +95,3 @@ def credentials_to_dict(credentials):
             'client_id': credentials.client_id,
             'client_secret': credentials.client_secret,
             'scopes': credentials.scopes}
-
-
-# titles of all youtube likes
-def youtube_likes(youtube):
-    youtube_request = youtube.playlistItems().list(
-        part="snippet,contentDetails",
-        playlistId="LL"
-    )
-    response = youtube_request.execute()
-
-    videos = []
-    for item in response["items"]:
-        videos.append(item["snippet"]["title"])
-    return videos
